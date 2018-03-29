@@ -4,8 +4,26 @@ import logging
 import time
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.framework import constant_op
 from tensorflow.contrib.cudnn_rnn.python.ops import cudnn_rnn_ops
+from tensorflow.core.protobuf import saver_pb2
+from tensorflow.python.framework import constant_op
+from tensorflow.python.framework import dtypes
+from tensorflow.python.framework import ops
+from tensorflow.python.framework import random_seed
+from tensorflow.python.framework.test_util import TensorFlowTestCase
+from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import gradient_checker
+from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import random_ops
+from tensorflow.python.ops import rnn as rnn_lib
+from tensorflow.python.ops import rnn_cell_impl
+from tensorflow.python.ops import state_ops
+from tensorflow.python.ops import variables
+from tensorflow.python.ops.losses import losses
+from tensorflow.python.platform import googletest
+from tensorflow.python.platform import test
+from tensorflow.python.training import gradient_descent
+from tensorflow.python.training import saver as saver_lib
 
 # Disable Tensorflow logging messages.
 logging.getLogger('tensorflow').setLevel(logging.WARNING)
