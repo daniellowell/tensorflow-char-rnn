@@ -174,7 +174,7 @@ class CharRNN(object):
     # Set rnn params
     params_size_t = model.params_size()
     params = variables.Variable(
-        random_ops.random_uniform([params_size_t]), validate_shape=False)
+        random_ops.random_uniform([params_size_t]), validate_shape=True)
     args = {
         "input_data": inputs,
         "input_h": input_h,
@@ -259,8 +259,7 @@ class CharRNN(object):
       # optimizer = tf.train.RMSPropOptimizer(learning_rate, decay_rate)
       optimizer = tf.train.AdamOptimizer(self.learning_rate)
 
-      self.train_op = optimizer.apply_gradients(zip(grads, tvars),
-                                                global_step=self.global_step)
+      self.train_op = optimizer.apply_gradients(zip(grads, tvars), global_step=self.global_step)
       
   def run_epoch(self, session, data_size, batch_generator, is_training,
                 verbose=0, freq=10, summary_writer=None, debug=False, divide_by_n=1):
