@@ -5,6 +5,7 @@ import time
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import constant_op
+from tensorflow.contrib.cudnn_rnn.python.ops import cudnn_rnn_ops
 
 # Disable Tensorflow logging messages.
 logging.getLogger('tensorflow').setLevel(logging.WARNING)
@@ -51,7 +52,7 @@ class CharRNN(object):
     self.targets = tf.placeholder(tf.int64,
                                   [self.batch_size, self.num_unrollings],
                                   name='targets')
-    
+
 #################################################
 #NEED TO REPLACE ALL CELL CODE
 
