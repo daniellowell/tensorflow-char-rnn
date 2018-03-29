@@ -4,6 +4,7 @@ import logging
 import time
 import numpy as np
 import tensorflow as tf
+from tensorflow.python.framework import constant_op
 
 # Disable Tensorflow logging messages.
 logging.getLogger('tensorflow').setLevel(logging.WARNING)
@@ -50,57 +51,61 @@ class CharRNN(object):
     self.targets = tf.placeholder(tf.int64,
                                   [self.batch_size, self.num_unrollings],
                                   name='targets')
+    
+#################################################
+#NEED TO REPLACE ALL CELL CODE
 
-    if self.model == 'rnn':
-      cell_fn = tf.contrib.rnn.BasicRNNCell
-    elif self.model == 'lstm':
-      cell_fn = tf.contrib.rnn.BasicLSTMCell
-    elif self.model == 'gru':
-      cell_fn = tf.contrib.rnn.GRUCell
+    # if self.model == 'rnn':
+    #   cell_fn = tf.contrib.rnn.BasicRNNCell
+    # elif self.model == 'lstm':
+    #   cell_fn = tf.contrib.rnn.BasicLSTMCell
+    # elif self.model == 'gru':
+    #   cell_fn = tf.contrib.rnn.GRUCell
 
-    # params = {'input_size': self.input_size}
-    params = {}
-    if self.model == 'lstm':
-      # add bias to forget gate in lstm.
-      params['forget_bias'] = 0.0
-      params['state_is_tuple'] = True
-    # Create multilayer cell.
-    cell = cell_fn(
-        self.hidden_size, reuse=tf.get_variable_scope().reuse,
-        **params)
+    # # params = {'input_size': self.input_size}
+    # params = {}
+    # if self.model == 'lstm':
+    #   # add bias to forget gate in lstm.
+    #   params['forget_bias'] = 0.0
+    #   params['state_is_tuple'] = True
+    # # Create multilayer cell.
+    # cell = cell_fn(
+    #     self.hidden_size, reuse=tf.get_variable_scope().reuse,
+    #     **params)
 
-    cells = [cell]
-    # params['input_size'] = self.hidden_size
-    # more explicit way to create cells for MultiRNNCell than
-    # [higher_layer_cell] * (self.num_layers - 1)
-    for i in range(self.num_layers-1):
-      higher_layer_cell = cell_fn(
-          self.hidden_size, reuse=tf.get_variable_scope().reuse,
-          **params)
-      cells.append(higher_layer_cell)
+    # cells = [cell]
+    # # params['input_size'] = self.hidden_size
+    # # more explicit way to create cells for MultiRNNCell than
+    # # [higher_layer_cell] * (self.num_layers - 1)
+    # for i in range(self.num_layers-1):
+    #   higher_layer_cell = cell_fn(
+    #       self.hidden_size, reuse=tf.get_variable_scope().reuse,
+    #       **params)
+    #   cells.append(higher_layer_cell)
 
-    if is_training and self.dropout > 0:
-      cells = [tf.contrib.rnn.DropoutWrapper(
-        cell,
-        output_keep_prob=1.0-self.dropout)
-               for cell in cells]
+    # if is_training and self.dropout > 0:
+    #   cells = [tf.contrib.rnn.DropoutWrapper(
+    #     cell,
+    #     output_keep_prob=1.0-self.dropout)
+    #            for cell in cells]
 
-    multi_cell = tf.contrib.rnn.MultiRNNCell(cells)
+    # multi_cell = tf.contrib.rnn.MultiRNNCell(cells)
 
-    with tf.name_scope('initial_state'):
-      # zero_state is used to compute the intial state for cell.
-      self.zero_state = multi_cell.zero_state(self.batch_size, tf.float32)
-      # Placeholder to feed in initial state.
-      # self.initial_state = tf.placeholder(
-      #   tf.float32,
-      #   [self.batch_size, multi_cell.state_size],
-      #   'initial_state')
+    # with tf.name_scope('initial_state'):
+    #   # zero_state is used to compute the intial state for cell.
+    #   self.zero_state = multi_cell.zero_state(self.batch_size, tf.float32)
+    #   # Placeholder to feed in initial state.
+    #   # self.initial_state = tf.placeholder(
+    #   #   tf.float32,
+    #   #   [self.batch_size, multi_cell.state_size],
+    #   #   'initial_state')
 
-      self.initial_state = create_tuple_placeholders_with_default(
-        multi_cell.zero_state(batch_size, tf.float32),
-        extra_dims=(None,),
-        shape=multi_cell.state_size)      
-      
+    #   self.initial_state = create_tuple_placeholders_with_default(
+    #     multi_cell.zero_state(batch_size, tf.float32),
+    #     extra_dims=(None,),
+    #     shape=multi_cell.state_size)      
+
+######## MIGHT NEED THIS STUFF ##################
 
     # Embeddings layers.
     with tf.name_scope('embedding_layer'):
@@ -123,6 +128,48 @@ class CharRNN(object):
     outputs, final_state = tf.contrib.rnn.static_rnn(
       multi_cell, sliced_inputs,
       initial_state=self.initial_state)
+
+########################
+
+#Insert MIOPEN
+    if self.model == 'lstm':
+      model = cudnn_rnn_ops.CudnnLSTM(
+          self.num_layers, self.hidden_size, self.embedding_size, dropout=self.dropout)
+    elif self.model == 'gru':
+      model = cudnn_rnn_ops.CudnnGRU(
+          self.num_layers, self.hidden_size, self.embedding_size, dropout=self.dropout)
+    elif self.model == 'rnn':
+      model = cudnn_rnn_ops.CudnnRNNTanh(
+          self.num_layers, self.hidden_size, self.embedding_size, dropout=self.dropout)
+    else:
+      raise ValueError("Invalid model: %s" % self.model)
+
+    # Set zero init input states
+    input_h = constant_op.constant(
+        np.zeros([self.num_layers, batch_size, self.hidden_size]), dtype=tf.float32)
+    has_input_c = (self.model == 'lstm')
+    if has_input_c:
+      input_c = constant_op.constant(
+          np.zeros([self.num_layers, batch_size, self.hidden_size]), dtype=tf.float32)
+
+    # Set rnn params
+    params_size_t = model.params_size()
+    params = variables.Variable(
+        random_ops.random_uniform([params_size_t]), validate_shape=False)
+    args = {
+        "input_data": input_data,
+        "input_h": input_h,
+        "params": params,
+        "is_training": is_training
+    }
+    if has_input_c:
+      args["input_c"] = input_c
+    # Build cell
+    output_tuple = model(**args)
+
+
+########################
+
 
     self.final_state = final_state
 
