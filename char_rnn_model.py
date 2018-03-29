@@ -176,7 +176,7 @@ class CharRNN(object):
     params = variables.Variable(
         random_ops.random_uniform([params_size_t]), validate_shape=False)
     args = {
-        "input_data": input_data,
+        "input_data": inputs,
         "input_h": input_h,
         "params": params,
         "is_training": is_training
@@ -184,7 +184,11 @@ class CharRNN(object):
     if has_input_c:
       args["input_c"] = input_c
     # Build cell
-    output_tuple = model(**args)
+    if (self.model == 'lstm'):
+      outputs, final_state = model(input_data=inputs, input_h=input_h, input_c=input_c, params=params)
+    else:
+      outputs, final_state = model(input_data=inputs, input_h=input_h, params=params)
+    # model(**args)
 
 
 ########################
