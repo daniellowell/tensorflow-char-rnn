@@ -125,9 +125,9 @@ class CharRNN(object):
                        for input_ in tf.split(axis=1, num_or_size_splits=self.num_unrollings, value=inputs)]
       
     # Copy cell to do unrolling and collect outputs.
-    outputs, final_state = tf.contrib.rnn.static_rnn(
-      multi_cell, sliced_inputs,
-      initial_state=self.initial_state)
+    # outputs, final_state = tf.contrib.rnn.static_rnn(
+    #   multi_cell, sliced_inputs,
+    #   initial_state=self.initial_state)
 
 ########################
 
