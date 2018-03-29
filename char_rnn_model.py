@@ -174,7 +174,7 @@ class CharRNN(object):
     # Set rnn params
     params_size_t = model.params_size()
     params = variables.Variable(
-        random_ops.random_uniform([params_size_t]), validate_shape=True)
+        random_ops.random_uniform([params_size_t]), shape=model.params_size(), validate_shape=True)
     args = {
         "input_data": inputs,
         "input_h": input_h,
