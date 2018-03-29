@@ -185,9 +185,9 @@ class CharRNN(object):
       args["input_c"] = input_c
     # Build cell
     if (self.model == 'lstm'):
-      outputs, final_state = model(input_data=inputs, input_h=input_h, input_c=input_c, params=params)
+      outputs, final_state, _* = model(input_data=inputs, input_h=input_h, input_c=input_c, params=params)
     else:
-      outputs, final_state = model(input_data=inputs, input_h=input_h, params=params)
+      outputs, final_state, _* = model(input_data=inputs, input_h=input_h, params=params)
     # model(**args)
 
 
