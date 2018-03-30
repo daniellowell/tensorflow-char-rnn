@@ -165,16 +165,26 @@ class CharRNN(object):
 
     # Set zero init input states
     input_h = constant_op.constant(
-        np.zeros([self.num_layers, batch_size, self.hidden_size]), dtype=tf.float32)
+        np.zeros([self.num_layers, self.num_unrollings, self.hidden_size]), dtype=tf.float32)
     has_input_c = (self.model == 'lstm')
     if has_input_c:
       input_c = constant_op.constant(
-          np.zeros([self.num_layers, batch_size, self.hidden_size]), dtype=tf.float32)
+          np.zeros([self.num_layers, self.num_unrollings, self.hidden_size]), dtype=tf.float32)
 
     # Set rnn params
     params_size_t = model.params_size()
-    rand_params = random_ops.random_uniform([params_size_t]);
-    rand_params.set_shape([params_size_t]);
+    rand_params = random_ops.random_uniform(params_size_t.shape);
+    print "PARAMS size"
+    print params_size_t
+    print rand_params.shape
+    print "Input sizes"
+    print input_h
+    print input_c
+    print "Batch size"
+    print batch_size
+    print "Hidden size"
+    print self.hidden_size
+    #rand_params.set_shape(params_size_t.shape);
     params = variables.Variable(rand_params, validate_shape=True)
     args = {
         "input_data": inputs,
@@ -191,7 +201,9 @@ class CharRNN(object):
       outputs, final_state, final_cell = model(input_data=inputs, input_h=input_h, params=params)
     # model(**args)
 
+    self.zero_state = state_ops.assign(params, array_ops.zeros(params_size_t.shape))
 
+    #self.initial_state = create_tuple_placeholders_with_default(self.zero_state, extra_dims=(None,), shape=self.zero_state.shape)  
 ########################
 
 
@@ -295,8 +307,8 @@ class CharRNN(object):
       ops = [self.average_loss, self.final_state, extra_op,
              self.summaries, self.global_step, self.learning_rate]
 
-      feed_dict = {self.input_data: inputs, self.targets: targets,
-                   self.initial_state: state}
+      feed_dict = {self.input_data: inputs, self.targets: targets}
+#                   self.initial_state: state}
 
       results = session.run(ops, feed_dict)
       average_loss, state, _, summary_str, global_step, lr = results
@@ -324,8 +336,8 @@ class CharRNN(object):
       for char in start_text[:-1]:
         x = np.array([[char2id(char, vocab_index_dict)]])
         state = session.run(self.final_state,
-                            {self.input_data: x,
-                             self.initial_state: state})
+                            {self.input_data: x})
+#                             self.initial_state: state})
       x = np.array([[char2id(start_text[-1], vocab_index_dict)]])
     else:
       vocab_size = len(vocab_index_dict.keys())
@@ -335,8 +347,8 @@ class CharRNN(object):
     for i in range(length):
       state, logits = session.run([self.final_state,
                                    self.logits],
-                                  {self.input_data: x,
-                                   self.initial_state: state})
+                                  {self.input_data: x})
+#                                   self.initial_state: state})
       unnormalized_probs = np.exp((logits - np.max(logits)) / temperature)
       probs = unnormalized_probs / np.sum(unnormalized_probs)
 
