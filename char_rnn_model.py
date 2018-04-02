@@ -119,12 +119,13 @@ class CharRNN(object):
     #   #   [self.batch_size, multi_cell.state_size],
     #   #   'initial_state')
 
-    #   self.initial_state = create_tuple_placeholders_with_default(
-    #     multi_cell.zero_state(batch_size, tf.float32),
-    #     extra_dims=(None,),
-    #     shape=multi_cell.state_size)      
+      # self.initial_state = create_tuple_placeholders_with_default(
+      #   multi_cell.zero_state(batch_size, tf.float32),
+      #   extra_dims=(None,),
+      #   shape=multi_cell.state_size)      
 
 ######## MIGHT NEED THIS STUFF ##################
+
 
     # Embeddings layers.
     with tf.name_scope('embedding_layer'):
@@ -203,7 +204,14 @@ class CharRNN(object):
 
     self.zero_state = state_ops.assign(params, array_ops.zeros(params_size_t.shape))
 
-    #self.initial_state = create_tuple_placeholders_with_default(self.zero_state, extra_dims=(None,), shape=self.zero_state.shape)  
+    self.initial_state = create_tuple_placeholders_with_default(
+      self.zero_state,
+      extra_dims=(None,),
+      shape=params_size_t.shape) 
+
+    print "Initial State"
+    print self.initial_state
+    
 ########################
 
 
@@ -464,3 +472,4 @@ def create_tuple_placeholders(dtype, extra_dims, shape):
       result = t(*subplaceholders)
   return result
   
+
